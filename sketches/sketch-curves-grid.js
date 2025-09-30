@@ -34,7 +34,7 @@ const sketch = ({ width, height }) => {
 
     context.save();
     context.translate(mx, my);
-    // context.translate(cw * 0.5, ch * 0.5);
+    // context.translate(cw * 0.5, ch * 0.5); to center
 
     points.forEach((point) => {
       point.draw(context);
