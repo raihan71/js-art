@@ -1,7 +1,7 @@
-const canvasSketch = require('canvas-sketch');
-const math = require('canvas-sketch-util/math');
-const random = require('canvas-sketch-util/random');
-const risoColors = require('riso-colors');
+import canvasSketch from 'canvas-sketch';
+import math from 'canvas-sketch-util/math';
+import random from 'canvas-sketch-util/random';
+import risoColors from 'riso-colors';
 
 const settings = {
   dimensions: [1080, 1080],
@@ -13,9 +13,25 @@ const settings = {
 const sketch = ({ context, width, height }) => {
   let x, y, w, h, fill, stroke;
 
-  const num = 40;
+  const num = 25;
   const degrees = -35;
   const rects = [];
+
+  const rectColors = [
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+    random.pick(risoColors),
+  ];
+
+  const bgColor = random.pick(risoColors).hex;
 
   for (let i = 0; i < num; i++) {
     x = random.range(0, width);
@@ -23,28 +39,30 @@ const sketch = ({ context, width, height }) => {
     w = random.range(200, 600);
     h = random.range(40, 200);
 
-    fill = `rgba(255, ${random.range(0, 255)}, ${random.range(
-      0,
-      255,
-    )} , ${random.range(0.1, 0.5)})`;
-    stroke = 'black';
+    fill = random.pick(rectColors).hex;
+    stroke = random.pick(rectColors).hex;
     rects.push({ x, y, w, h, fill, stroke });
   }
 
   return ({ context, width, height }) => {
-    context.fillStyle = 'white';
+    context.fillStyle = bgColor;
     context.fillRect(0, 0, width, height);
 
     rects.forEach((rect) => {
-      const { x, y, w, h } = rect;
+      const { x, y, w, h, stroke, fill } = rect;
       context.save();
       context.translate(x, y);
       context.strokeStyle = stroke;
-      context.lineWidth = 2;
+      context.lineWidth = 10;
       context.fillStyle = fill;
-      drawedSkewed({ context, w, h, degrees });
-      context.stroke();
+      drawSkewed({ context, w, h, degrees });
+      context.shadowColor = 'rgba(0,0,0,0.5)';
+      context.shadowOffsetX = 10;
+      context.shadowOffsetY = 20;
+      context.shadowBlur = 10;
       context.fill();
+      context.shadowColor = null;
+      context.stroke();
       context.restore();
     });
   };
@@ -67,7 +85,7 @@ const sketch = ({ context, width, height }) => {
   // context.restore();
 };
 
-const drawedSkewed = ({ context, w = 600, h = 200, degrees = -45 }) => {
+const drawSkewed = ({ context, w = 600, h = 200, degrees = -45 }) => {
   const angle = math.degToRad(degrees);
   const rx = Math.cos(angle) * w;
   const ry = Math.sin(angle) * w;
