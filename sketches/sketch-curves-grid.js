@@ -1,4 +1,5 @@
 const canvasSketch = require('canvas-sketch');
+const random = require('canvas-sketch-util/random');
 
 const settings = {
   dimensions: [1080, 1080],
@@ -21,10 +22,16 @@ const sketch = ({ width, height }) => {
   const points = [];
 
   let x, y;
+  let frequence = 1;
+  let amplitude = 90;
 
   for (let i = 0; i < numCells; i++) {
     x = (i % cols) * cw;
     y = Math.floor(i / cols) * ch;
+
+    n = random.noise2D(x, y, frequence, amplitude);
+    x += n;
+    y += n;
     points.push(new Point({ x, y }));
   }
 
@@ -34,6 +41,20 @@ const sketch = ({ width, height }) => {
 
     context.save();
     context.translate(mx, my);
+    context.translate(cw * 0.5, ch * 0.5);
+    context.strokeStyle = 'blue';
+    context.lineWidth = 4;
+
+    for (let r = 0; r < rows; r++) {
+      context.beginPath();
+      for (let c = 0; c < cols; c++) {
+        const point = points[r * cols + c];
+        if (!c) context.moveTo(point.x, point.y);
+        else context.lineTo(point.x, point.y);
+      }
+      context.stroke();
+    }
+
     // context.translate(cw * 0.5, ch * 0.5); to center
 
     points.forEach((point) => {
