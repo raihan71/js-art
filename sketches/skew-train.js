@@ -16,15 +16,11 @@ const settings = {
 const sketch = ({ context, width, height }) => {
   random.setSeed(seed);
   let x, y, w, h, fill, stroke, blend;
-
   const num = 40;
   const degrees = -35;
   const rects = [];
 
   const rectColors = [
-    random.pick(risoColors),
-    random.pick(risoColors),
-    random.pick(risoColors),
     random.pick(risoColors),
     random.pick(risoColors),
     random.pick(risoColors),
@@ -50,10 +46,32 @@ const sketch = ({ context, width, height }) => {
     fill = random.pick(rectColors).hex;
     stroke = random.pick(rectColors).hex;
     blend = random.value() > 0.5 ? 'overlay' : 'source-over';
-    rects.push({ x, y, w, h, fill, stroke, blend });
+    // Each rectangle will have its own speed and vertical oscillation properties
+    const speed = random.range(0.5, 5);
+    const direction = random.value() > 0.5 ? 1 : -1;
+    const initialY = y; // Store initial Y for oscillation
+    const oscillationOffset = random.range(0, Math.PI * 2); // Offset for sine wave
+    const oscillationAmplitude = random.range(20, 80); // How much it moves up and down
+    const oscillationFrequency = random.range(0.01, 0.05); // How fast it oscillates
+    rects.push({
+      x,
+      y,
+      w,
+      h,
+      fill,
+      stroke,
+      blend,
+      speed,
+      direction,
+      initialY,
+      oscillationOffset,
+      oscillationAmplitude,
+      oscillationFrequency,
+    });
   }
 
-  return ({ context, width, height }) => {
+  return ({ context, width, height, time }) => {
+    // Add 'time' to the sketch parameters
     context.fillStyle = bgColor;
     context.fillRect(0, 0, width, height);
     context.save();
@@ -63,8 +81,43 @@ const sketch = ({ context, width, height }) => {
     context.clip();
 
     rects.forEach((rect) => {
-      const { x, y, w, h, stroke, fill, blend } = rect;
+      let {
+        x,
+        y,
+        w,
+        h,
+        stroke,
+        fill,
+        blend,
+        speed,
+        direction,
+        initialY,
+        oscillationOffset,
+        oscillationAmplitude,
+        oscillationFrequency,
+      } = rect;
       let shadowColor;
+
+      // Update x position based on per-rectangle direction
+      x += speed * direction;
+
+      // Wrap around when rectangle goes off-screen in its movement direction
+      if (direction > 0 && x > width) {
+        x = -w; // Enter from left once it exits on the right
+      } else if (direction < 0 && x < -w) {
+        x = width; // Enter from right once it exits on the left
+      }
+
+      // Update y position for up and down movement using sine wave
+      y =
+        initialY +
+        Math.sin(time * oscillationFrequency + oscillationOffset) *
+          oscillationAmplitude;
+
+      // Update the rect object with new x and y
+      rect.x = x;
+      rect.y = y;
+
       context.save();
       context.translate(-mask.x, -mask.y);
       context.translate(x, y);

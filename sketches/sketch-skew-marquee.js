@@ -9,17 +9,20 @@ const seed = random.getRandomSeed();
 const settings = {
   dimensions: [1080, 1080],
   animate: true,
-  name: seed,
-  fps: 24,
+  // name: seed,
+  // fps: 60,
 };
 
 const sketch = ({ context, width, height }) => {
   random.setSeed(seed);
   let x, y, w, h, fill, stroke, blend;
-
   const num = 40;
   const degrees = -35;
   const rects = [];
+
+  // Define dx and dy for movement direction
+  const dx = 1; // Move horizontally to the right
+  const dy = 0; // No vertical movement
 
   const rectColors = [
     random.pick(risoColors),
@@ -50,7 +53,18 @@ const sketch = ({ context, width, height }) => {
     fill = random.pick(rectColors).hex;
     stroke = random.pick(rectColors).hex;
     blend = random.value() > 0.5 ? 'overlay' : 'source-over';
-    rects.push({ x, y, w, h, fill, stroke, blend });
+    // Each rectangle will have its own speed and vertical oscillation properties
+    const speed = random.range(0.5, 5);
+    rects.push({
+      x,
+      y,
+      w,
+      h,
+      fill,
+      stroke,
+      blend,
+      speed,
+    });
   }
 
   return ({ context, width, height }) => {
@@ -63,8 +77,22 @@ const sketch = ({ context, width, height }) => {
     context.clip();
 
     rects.forEach((rect) => {
-      const { x, y, w, h, stroke, fill, blend } = rect;
+      let { x, y, w, h, stroke, fill, blend, speed } = rect;
       let shadowColor;
+
+      // Update x position based on speed and direction
+      x += speed * dx;
+
+      // Wrap around when rectangle goes off-screen
+      if (x > width) {
+        x = -w; // Reset to left side, considering its width
+      } else if (x < -w) {
+        x = width; // Reset to right side if moving left (not currently the case with dx=1)
+      }
+
+      // Update the rect object with new x
+      rect.x = x;
+
       context.save();
       context.translate(-mask.x, -mask.y);
       context.translate(x, y);
