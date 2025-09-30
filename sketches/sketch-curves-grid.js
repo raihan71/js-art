@@ -1,5 +1,6 @@
 const canvasSketch = require('canvas-sketch');
 const random = require('canvas-sketch-util/random');
+const math = require('canvas-sketch-util/math');
 
 const settings = {
   dimensions: [1080, 1080],
@@ -21,7 +22,7 @@ const sketch = ({ width, height }) => {
 
   const points = [];
 
-  let x, y;
+  let x, y, n, lineWidth;
   let frequence = 0.002;
   let amplitude = 90;
 
@@ -32,7 +33,8 @@ const sketch = ({ width, height }) => {
     n = random.noise2D(x, y, frequence, amplitude);
     x += n;
     y += n;
-    points.push(new Point({ x, y }));
+    lineWidth = math.mapRange(n, -amplitude, amplitude, 2, 20);
+    points.push(new Point({ x, y, lineWidth }));
   }
 
   return ({ context, width, height }) => {
@@ -45,6 +47,8 @@ const sketch = ({ width, height }) => {
     context.strokeStyle = 'blue';
     context.lineWidth = 4;
 
+    let lastX, lastY;
+
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols - 1; c++) {
         const curr = points[r * cols + c + 0];
@@ -53,13 +57,23 @@ const sketch = ({ width, height }) => {
         const mx = curr.x + (next.x - curr.x) * 0.5;
         const my = curr.y + (next.y - curr.y) * 0.5;
 
-        context.beginPath();
+        if (!c) {
+          lastX = curr.x;
+          lastY = curr.y;
+        }
 
+        context.beginPath();
+        context.lineWidth = curr.lineWidth;
+
+        context.moveTo(lastX, lastY);
         context.quadraticCurveTo(curr.x, curr.y, mx, my);
 
         // if (!c) context.moveTo(point.x, point.y);
         // else context.lineTo(point.x, point.y);
         context.stroke();
+
+        lastX = mx;
+        lastY = my;
       }
     }
 
@@ -76,9 +90,10 @@ const sketch = ({ width, height }) => {
 canvasSketch(sketch, settings);
 
 class Point {
-  constructor({ x, y }) {
+  constructor({ x, y, lineWidth }) {
     this.x = x;
     this.y = y;
+    this.lineWidth = lineWidth;
   }
 
   draw(context) {
