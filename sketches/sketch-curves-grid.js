@@ -6,11 +6,12 @@ import colorMap from 'colormap';
 const settings = {
   dimensions: [1080, 1080],
   animate: true,
+  fps: 60,
 };
 
 const sketch = ({ width, height }) => {
   const cols = 72;
-  const rows = 8;
+  const rows = 57;
   const numCells = cols * rows;
 
   const gw = width * 0.8;
@@ -20,13 +21,13 @@ const sketch = ({ width, height }) => {
   const ch = gh / rows;
 
   const mx = (width - gw) * 0.5;
-  const my = (height - gh) * 0.5;
+  const my = (height - gh) * 0.8;
 
   const points = [];
 
   let x, y, n, lineWidth, color;
   let frequence = 0.002;
-  let amplitude = 90;
+  let amplitude = 120;
 
   const colors = colorMap({
     colormap: 'inferno',
@@ -47,13 +48,15 @@ const sketch = ({ width, height }) => {
   }
 
   return ({ context, width, height, frame }) => {
-    context.fillStyle = 'black';
+    context.fillStyle = 'rgb(0,0,0)';
     context.fillRect(0, 0, width, height);
 
     context.save();
     context.translate(mx, my);
     context.translate(cw * 0.5, ch * 0.5);
-    context.strokeStyle = 'red';
+    context.strokeStyle = `rgba(255, ${Math.floor(
+      random.range(0, 255),
+    )}, 0, ${random.range(0.1, 0.5)})`;
     context.lineWidth = 4;
 
     points.forEach((point) => {
@@ -75,7 +78,7 @@ const sketch = ({ width, height }) => {
         const next = points[r * cols + c + 1];
 
         const mx = curr.x + (next.x - curr.x) * 0.8;
-        const my = curr.y + (next.y - curr.y) * 5.5;
+        const my = curr.y + (next.y - curr.y) * 1.5;
 
         if (!c) {
           lastX = curr.x;
