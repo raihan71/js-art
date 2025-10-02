@@ -102,7 +102,7 @@ const addListerner = () => {
 
 const createAudio = () => {
   audio = document.createElement('audio');
-  audio.src = 'audio/mahalini-sisa-rasa.mp3';
+  audio.src = 'assets/audio/mahalini-sisa-rasa.mp3';
 
   audioContext = new AudioContext();
   sourceNode = audioContext.createMediaElementSource(audio);
