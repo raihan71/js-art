@@ -1,7 +1,15 @@
-import canvasSketch from 'canvas-sketch';
+﻿import canvasSketch from 'canvas-sketch';
 import random from 'canvas-sketch-util/random';
 import math from 'canvas-sketch-util/math';
 import colorMap from 'colormap';
+
+const AUDIO_OPTIONS = {
+  src: 'assets/audio/mahalini-sisa-rasa.mp3', // Update to point at your MP3 file
+  loop: true,
+};
+
+const audioAnalyser =
+  typeof window !== 'undefined' ? createAudioAnalyser(AUDIO_OPTIONS) : null;
 
 const settings = {
   dimensions: [1080, 1080],
@@ -39,8 +47,6 @@ const sketch = ({ width, height }) => {
     y = Math.floor(i / cols) * ch;
 
     n = random.noise2D(x, y, frequence, amplitude);
-    // x += n;
-    // y += n;
     lineWidth = math.mapRange(n, -amplitude, amplitude, 0, 5);
     color =
       colors[Math.floor(math.mapRange(n, -amplitude, amplitude, 0, amplitude))];
@@ -54,23 +60,27 @@ const sketch = ({ width, height }) => {
     context.save();
     context.translate(mx, my);
     context.translate(cw * 0.5, ch * 0.5);
-    context.strokeStyle = `rgba(255, ${Math.floor(
-      random.range(0, 255),
-    )}, 0, ${random.range(0.1, 0.5)})`;
-    context.lineWidth = 4;
+
+    const audioLevel = audioAnalyser ? audioAnalyser.update() : 0;
+    const amplitudeBoost = math.lerp(0.6, 3.2, audioLevel);
+    const frameSpeed = math.lerp(1.5, 6, audioLevel);
 
     points.forEach((point) => {
       const n = random.noise2D(
-        point.ix + frame * 3,
-        point.iy + frame,
+        point.ix + frame * frameSpeed,
+        point.iy + frame * 0.5,
         frequence,
-        amplitude,
+        amplitude * amplitudeBoost,
       );
       point.x = point.ix + n;
       point.y = point.iy + n;
+      point.updateLineWidth(audioLevel);
     });
 
-    let lastX, lastY;
+    context.globalAlpha = math.lerp(0.3, 0.9, audioLevel);
+
+    let lastX;
+    let lastY;
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols - 1; c++) {
@@ -91,9 +101,6 @@ const sketch = ({ width, height }) => {
 
         context.moveTo(lastX, lastY);
         context.quadraticCurveTo(curr.x, curr.y, mx, my);
-
-        // if (!c) context.moveTo(point.x, point.y);
-        // else context.lineTo(point.x, point.y);
         context.stroke();
 
         lastX = mx - (c / cols) * 250;
@@ -101,7 +108,7 @@ const sketch = ({ width, height }) => {
       }
     }
 
-    // context.translate(cw * 0.5, ch * 0.5); to center
+    context.globalAlpha = 1;
 
     points.forEach((point) => {
       // point.draw(context);
@@ -118,10 +125,17 @@ class Point {
     this.x = x;
     this.y = y;
     this.lineWidth = lineWidth;
+    this.baseLineWidth = Math.max(0.3, lineWidth);
     this.color = color;
 
     this.ix = x;
     this.iy = y;
+  }
+
+  updateLineWidth(level) {
+    const scale = math.mapRange(level, 0, 1, 0.4, 3, true);
+    const target = Math.max(0.5, this.baseLineWidth * scale);
+    this.lineWidth = math.lerp(this.lineWidth, target, 0.2);
   }
 
   draw(context) {
@@ -135,4 +149,118 @@ class Point {
 
     context.restore();
   }
+}
+
+function createAudioAnalyser(options = {}) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass) {
+    console.warn('AudioContext not supported in this browser.');
+    return null;
+  }
+
+  if (!options.src) {
+    console.warn(
+      'No audio source provided. Set AUDIO_OPTIONS.src to your MP3.',
+    );
+    return null;
+  }
+
+  const state = {
+    ctx: null,
+    analyser: null,
+    data: null,
+    level: 0,
+    started: false,
+    audio: null,
+  };
+
+  const start = async () => {
+    state.ctx = new AudioContextClass();
+
+    state.audio = new Audio();
+    state.audio.src = options.src;
+    state.audio.loop = options.loop !== false;
+    state.audio.preload = 'auto';
+    state.audio.crossOrigin = 'anonymous';
+
+    const source = state.ctx.createMediaElementSource(state.audio);
+    state.analyser = state.ctx.createAnalyser();
+    state.analyser.fftSize = 512;
+    state.analyser.smoothingTimeConstant = 0.85;
+    state.data = new Uint8Array(state.analyser.frequencyBinCount);
+
+    source.connect(state.analyser);
+    state.analyser.connect(state.ctx.destination);
+
+    await state.audio.play();
+    console.info('Audio file playing — the sketch now reacts to it.');
+  };
+
+  const resumeContext = () => {
+    if (state.ctx && state.ctx.state === 'suspended') {
+      state.ctx.resume();
+    }
+  };
+
+  const ensurePlaying = async () => {
+    if (state.audio && state.audio.paused) {
+      try {
+        await state.audio.play();
+      } catch (error) {
+        console.warn(
+          'Audio playback failed. User interaction may be required.',
+          error,
+        );
+      }
+    }
+  };
+
+  const handleGesture = async () => {
+    if (state.started) {
+      resumeContext();
+      await ensurePlaying();
+      return;
+    }
+
+    try {
+      await start();
+      state.started = true;
+    } catch (error) {
+      state.started = false;
+      console.warn('Audio file could not be started.', error);
+    }
+  };
+
+  const events = ['pointerdown', 'touchstart', 'keydown'];
+  events.forEach((type) => {
+    window.addEventListener(type, handleGesture);
+  });
+
+  console.info(
+    'Interact (click, tap, or press a key) to let the sketch play the audio file.',
+  );
+
+  return {
+    update() {
+      if (!state.analyser) {
+        return state.level;
+      }
+
+      resumeContext();
+      ensurePlaying();
+
+      state.analyser.getByteFrequencyData(state.data);
+
+      let sum = 0;
+      for (let i = 0; i < state.data.length; i++) {
+        sum += state.data[i];
+      }
+
+      const average = sum / state.data.length / 255;
+      state.level = math.lerp(state.level, average, 0.15);
+
+      return state.level;
+    },
+  };
 }
