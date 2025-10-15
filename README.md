@@ -47,6 +47,11 @@ yarn install
 
 The project uses [canvas-sketch](https://github.com/mattdesl/canvas-sketch) to run sketches. To start a canvas-sketch, run:
 
+## Workshop
+
+- [Module Workshop](https://docs.google.com/document/d/1lGlk5kvkbLol7Z47pavC_KEXpVZ7Fmw4B6J7Xg21PrY/edit?usp=sharing)
+- [Slides](https://www.canva.com/design/DAG0B9-LZZQ/7kjDm2VjJ2C540DggcC_ug/edit?utm_content=DAG0B9-LZZQ&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+
 ```bash
 npm start
 # or
